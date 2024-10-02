@@ -2,8 +2,13 @@
   "name": "pg-query-deparser",
   "version": "0.0.1",
   "description": "Format PostgreSQL Queries from AST",
-  "homepage": "http://github.com/zhm/pg-query-deparser",
+  "homepage": "http://github.com/fulcrumapp/pg-query-deparser",
   "main": "dist/index.js",
+  "author": "",
+  "license": "ISC",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "scripts": {
     "prepublish": "npm run clean && npm run build",
     "lint": "node_modules/.bin/eslint src/* src/**/*",
@@ -13,12 +18,7 @@
     "check-deps": "node_modules/.bin/ncu",
     "update-deps": "node_modules/.bin/ncu -u"
   },
-  "author": "Zac McCormick <zac.mccormick@gmail.com> (http://github.com/zhm)",
-  "license": "BSD-3-Clause",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/zhm/pg-query-deparser.git"
-  },
+  "repository": "git://github.com/fulcrumapp/pg-query-deparser.git",
   "eslintConfig": {
     "extends": "fulcrum"
   },

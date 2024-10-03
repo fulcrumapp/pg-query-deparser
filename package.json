@@ -1,5 +1,5 @@
 {
-  "name": "pg-query-deparser",
+  "name": "@fulcrumapp/pg-query-deparser",
   "version": "0.0.1",
   "description": "Format PostgreSQL Queries from AST",
   "homepage": "http://github.com/fulcrumapp/pg-query-deparser",

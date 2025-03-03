@@ -10,39 +10,42 @@
     "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
-    "prepublish": "npm run clean && npm run build",
-    "lint": "node_modules/.bin/eslint src/* src/**/*",
-    "build": "node_modules/.bin/babel src --out-dir dist --source-maps",
-    "watch": "node_modules/.bin/babel src --out-dir dist --source-maps --watch",
+    "prepare": "npm run clean && npm run build",
+    "lint": "eslint src/* src/**/*",
+    "build": "babel src --out-dir dist --source-maps",
+    "watch": "babel src --out-dir dist --source-maps --watch",
     "clean": "rm -rf dist",
-    "check-deps": "node_modules/.bin/ncu",
-    "update-deps": "node_modules/.bin/ncu -u"
+    "check-deps": "ncu",
+    "update-deps": "ncu -u"
   },
   "repository": "git://github.com/fulcrumapp/pg-query-deparser.git",
   "eslintConfig": {
-    "extends": "fulcrum"
+    "extends": "fulcrum",
+    "parser": "@babel/eslint-parser",
+    "parserOptions": {
+      "requireConfigFile": false,
+      "ecmaVersion": 2020,
+      "sourceType": "module"
+    }
   },
   "devDependencies": {
-    "babel-cli": "^6.9.0",
-    "babel-core": "^6.9.1",
-    "babel-eslint": "^6.0.4",
-    "babel-preset-es2015": "^6.16.0",
-    "babel-preset-es2015-loose": "^8.0.0",
-    "babel-preset-es2015-node5": "^1.2.0",
-    "babel-preset-stage-1": "^6.5.0",
-    "browserify": "^13.0.1",
-    "chai": "^3.5.0",
-    "eslint": "^2.11.1",
+    "@babel/cli": "^7.23.9",
+    "@babel/core": "^7.23.9",
+    "@babel/eslint-parser": "^7.23.9",
+    "@babel/preset-env": "^7.23.9",
+    "browserify": "^17.0.0",
+    "chai": "^5.0.3",
+    "eslint": "^8.57.0",
     "eslint-config-fulcrum": "^1.0.2",
-    "eslint-plugin-babel": "^3.3.0",
-    "eslint-plugin-react": "^5.1.1",
-    "glob": "^7.0.3",
-    "mocha": "^2.5.3",
-    "npm-check-updates": "^2.6.5",
-    "source-map-support": "^0.4.0",
-    "uglify-js": "^2.6.2",
-    "watch-cli": "^0.2.1",
-    "watchify": "^3.7.0"
+    "eslint-plugin-babel": "^5.3.1",
+    "eslint-plugin-react": "^7.33.2",
+    "glob": "^10.3.10",
+    "mocha": "^10.3.0",
+    "npm-check-updates": "^16.14.15",
+    "source-map-support": "^0.5.21",
+    "terser": "^5.28.1",
+    "watch-cli": "^0.2.3",
+    "watchify": "^4.0.0"
   },
   "dependencies": {
     "lodash": "^4.17.21"

@@ -44,6 +44,9 @@
     "watch-cli": "^0.2.1",
     "watchify": "^4.0.0"
   },
+  "resolutions": {
+    "**/elliptic": "6.6.1"
+  },
   "dependencies": {
     "lodash": "^4.17.21"
   },

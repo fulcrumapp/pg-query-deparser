@@ -1,6 +1,6 @@
 {
   "name": "@fulcrumapp/pg-query-deparser",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Format PostgreSQL Queries from AST",
   "homepage": "http://github.com/fulcrumapp/pg-query-deparser",
   "main": "dist/index.js",
@@ -38,7 +38,6 @@
     "npm-check-updates": "^17.1.16",
     "source-map-support": "^0.5.21",
     "uglify-js": "^3.19.3",
-    "watch-cli": "^0.2.1",
     "watchify": "^4.0.0"
   },
   "resolutions": {

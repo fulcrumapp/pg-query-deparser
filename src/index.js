@@ -23,7 +23,7 @@ const parens = (string) => {
 
 const indent = (text, count = 1) => text;
 
-export default class Deparser {
+export class Deparser {
   static deparse(query) {
     return new Deparser(query).deparseQuery();
   }

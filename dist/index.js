@@ -1,12 +1,3 @@
-"use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports["default"] = void 0;
-var _lodash = _interopRequireDefault(require("lodash"));
-var _util = require("util");
-function _interopRequireDefault(e) { return e && e.__esModule ? e : { "default": e }; }
 function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function _readOnlyError(r) { throw new TypeError('"' + r + '" is read-only'); }
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
@@ -20,9 +11,11 @@ function _defineProperties(e, r) { for (var t = 0; t < r.length; t++) { var o = 
 function _createClass(e, r, t) { return r && _defineProperties(e.prototype, r), t && _defineProperties(e, t), Object.defineProperty(e, "prototype", { writable: !1 }), e; }
 function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
 function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
-var keys = _lodash["default"].keys;
+import _ from 'lodash';
+import { format } from 'util';
+var keys = _.keys;
 var compact = function compact(o) {
-  return _lodash["default"].filter(_lodash["default"].compact(o), function (p) {
+  return _.filter(_.compact(o), function (p) {
     if (p == null) {
       return false;
     }
@@ -30,7 +23,7 @@ var compact = function compact(o) {
   });
 };
 var fail = function fail(type, node) {
-  throw new Error((0, _util.format)('Unhandled %s node: %s', type, JSON.stringify(node)));
+  throw new Error(format('Unhandled %s node: %s', type, JSON.stringify(node)));
 };
 var parens = function parens(string) {
   return '(' + string + ')';
@@ -39,7 +32,7 @@ var indent = function indent(text) {
   var count = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
   return text;
 };
-var Deparser = exports["default"] = /*#__PURE__*/function () {
+export var Deparser = /*#__PURE__*/function () {
   function Deparser(tree) {
     _classCallCheck(this, Deparser);
     this.tree = tree;
@@ -76,7 +69,7 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
       if (value == null) {
         return null;
       }
-      if (_lodash["default"].isArray(value)) {
+      if (_.isArray(value)) {
         return value.map(function (o) {
           return _this3.quote(o);
         });
@@ -136,7 +129,7 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
         case 'bit':
           return 'bit';
         default:
-          throw new Error((0, _util.format)('Unhandled data type: %s', typeName));
+          throw new Error(format('Unhandled data type: %s', typeName));
       }
     }
   }, {
@@ -172,11 +165,11 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
       if (item == null) {
         return null;
       }
-      if (_lodash["default"].isNumber(item)) {
+      if (_.isNumber(item)) {
         return item;
       }
       var type = keys(item)[0];
-      var node = _lodash["default"].values(item)[0];
+      var node = _.values(item)[0];
       if (this[type] == null) {
         throw new Error(type + ' is not implemented');
       }
@@ -209,47 +202,47 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
         case 1:
           // AEXPR_OP_ANY
           output.push(this.deparse(node.lexpr));
-          output.push((0, _util.format)('ANY (%s)', this.deparse(node.rexpr)));
+          output.push(format('ANY (%s)', this.deparse(node.rexpr)));
           return output.join(" ".concat(this.deparse(node.name[0]), " "));
         case 2:
           // AEXPR_OP_ALL
           output.push(this.deparse(node.lexpr));
-          output.push((0, _util.format)('ALL (%s)', this.deparse(node.rexpr)));
+          output.push(format('ALL (%s)', this.deparse(node.rexpr)));
           return output.join(" ".concat(this.deparse(node.name[0]), " "));
         case 3:
           // AEXPR_DISTINCT
-          return (0, _util.format)('%s IS DISTINCT FROM %s', this.deparse(node.lexpr), this.deparse(node.rexpr));
+          return format('%s IS DISTINCT FROM %s', this.deparse(node.lexpr), this.deparse(node.rexpr));
         case 4:
           // AEXPR_NULLIF
-          return (0, _util.format)('NULLIF(%s, %s)', this.deparse(node.lexpr), this.deparse(node.rexpr));
+          return format('NULLIF(%s, %s)', this.deparse(node.lexpr), this.deparse(node.rexpr));
         case 5:
           {
             // AEXPR_OF
             var op = node.name[0].String.str === '=' ? 'IS OF' : 'IS NOT OF';
-            return (0, _util.format)('%s %s (%s)', this.deparse(node.lexpr), op, this.list(node.rexpr));
+            return format('%s %s (%s)', this.deparse(node.lexpr), op, this.list(node.rexpr));
           }
         case 6:
           {
             // AEXPR_IN
             var _operator = node.name[0].String.str === '=' ? 'IN' : 'NOT IN';
-            return (0, _util.format)('%s %s (%s)', this.deparse(node.lexpr), _operator, this.list(node.rexpr));
+            return format('%s %s (%s)', this.deparse(node.lexpr), _operator, this.list(node.rexpr));
           }
         case 7:
           // AEXPR_LIKE
           output.push(this.deparse(node.lexpr));
           if (node.name[0].String.str === '!~~') {
-            output.push((0, _util.format)('NOT LIKE (%s)', this.deparse(node.rexpr)));
+            output.push(format('NOT LIKE (%s)', this.deparse(node.rexpr)));
           } else {
-            output.push((0, _util.format)('LIKE (%s)', this.deparse(node.rexpr)));
+            output.push(format('LIKE (%s)', this.deparse(node.rexpr)));
           }
           return output.join(' ');
         case 8:
           // AEXPR_ILIKE
           output.push(this.deparse(node.lexpr));
           if (node.name[0].String.str === '!~~*') {
-            output.push((0, _util.format)('NOT ILIKE (%s)', this.deparse(node.rexpr)));
+            output.push(format('NOT ILIKE (%s)', this.deparse(node.rexpr)));
           } else {
-            output.push((0, _util.format)('ILIKE (%s)', this.deparse(node.rexpr)));
+            output.push(format('ILIKE (%s)', this.deparse(node.rexpr)));
           }
           return output.join(' ');
         case 9:
@@ -257,20 +250,20 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
           // SIMILAR TO emits a similar_escape FuncCall node with the first argument
           output.push(this.deparse(node.lexpr));
           if (this.deparse(node.rexpr.FuncCall.args[1].Null)) {
-            output.push((0, _util.format)('SIMILAR TO %s', this.deparse(node.rexpr.FuncCall.args[0])));
+            output.push(format('SIMILAR TO %s', this.deparse(node.rexpr.FuncCall.args[0])));
           } else {
-            output.push((0, _util.format)('SIMILAR TO %s ESCAPE %s', this.deparse(node.rexpr.FuncCall.args[0]), this.deparse(node.rexpr.FuncCall.args[1])));
+            output.push(format('SIMILAR TO %s ESCAPE %s', this.deparse(node.rexpr.FuncCall.args[0]), this.deparse(node.rexpr.FuncCall.args[1])));
           }
           return output.join(' ');
         case 10:
           // AEXPR_BETWEEN TODO(zhm) untested
           output.push(this.deparse(node.lexpr));
-          output.push((0, _util.format)('BETWEEN %s AND %s', this.deparse(node.rexpr[0]), this.deparse(node.rexpr[1])));
+          output.push(format('BETWEEN %s AND %s', this.deparse(node.rexpr[0]), this.deparse(node.rexpr[1])));
           return output.join(' ');
         case 11:
           // AEXPR_NOT_BETWEEN TODO(zhm) untested
           output.push(this.deparse(node.lexpr));
-          output.push((0, _util.format)('NOT BETWEEN %s AND %s', this.deparse(node.rexpr[0]), this.deparse(node.rexpr[1])));
+          output.push(format('NOT BETWEEN %s AND %s', this.deparse(node.rexpr[0]), this.deparse(node.rexpr[1])));
           return output.join(' ');
         default:
           return fail('A_Expr', node);
@@ -291,7 +284,7 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
   }, {
     key: 'A_ArrayExpr',
     value: function A_ArrayExpr(node) {
-      return (0, _util.format)('ARRAY[%s]', this.list(node.elements));
+      return format('ARRAY[%s]', this.list(node.elements));
     }
   }, {
     key: 'A_Const',
@@ -305,9 +298,9 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
     key: 'A_Indices',
     value: function A_Indices(node) {
       if (node.lidx) {
-        return (0, _util.format)('[%s:%s]', this.deparse(node.lidx), this.deparse(node.uidx));
+        return format('[%s:%s]', this.deparse(node.lidx), this.deparse(node.uidx));
       }
-      return (0, _util.format)('[%s]', this.deparse(node.uidx));
+      return format('[%s]', this.deparse(node.uidx));
     }
   }, {
     key: 'A_Indirection',
@@ -352,7 +345,7 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
         case 1:
           return parens(this.list(node.args, ' OR '));
         case 2:
-          return (0, _util.format)('NOT (%s)', this.deparse(node.args[0]));
+          return format('NOT (%s)', this.deparse(node.args[0]));
         default:
           return fail('BoolExpr', node);
       }
@@ -386,7 +379,7 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
   }, {
     key: 'CoalesceExpr',
     value: function CoalesceExpr(node) {
-      return (0, _util.format)('COALESCE(%s)', this.list(node.args));
+      return format('COALESCE(%s)', this.list(node.args));
     }
   }, {
     key: 'CollateClause',
@@ -413,7 +406,7 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
       if (node.constraints) {
         output.push(this.list(node.constraints, ' '));
       }
-      return _lodash["default"].compact(output).join(' ');
+      return _.compact(output).join(' ');
     }
   }, {
     key: 'ColumnRef',
@@ -433,16 +426,16 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
       var output = [];
       output.push(node.ctename);
       if (node.aliascolnames) {
-        output.push((0, _util.format)('(%s)', this.quote(this.deparseNodes(node.aliascolnames))));
+        output.push(format('(%s)', this.quote(this.deparseNodes(node.aliascolnames))));
       }
-      output.push((0, _util.format)('AS (%s)', this.deparse(node.ctequery)));
+      output.push(format('AS (%s)', this.deparse(node.ctequery)));
       return output.join(' ');
     }
   }, {
     key: 'DefElem',
     value: function DefElem(node) {
       if (node.defname === 'transaction_isolation') {
-        return (0, _util.format)('ISOLATION LEVEL %s', node.arg.A_Const.val.String.str.toUpperCase());
+        return format('ISOLATION LEVEL %s', node.arg.A_Const.val.String.str.toUpperCase());
       }
       if (node.defname === 'transaction_read_only') {
         return node.arg.A_Const.val.Integer.ival === 0 ? 'READ WRITE' : 'READ ONLY';
@@ -506,10 +499,10 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
         output.push(parens(order.join(' ')));
       }
       if (node.agg_filter != null) {
-        output.push((0, _util.format)('FILTER (WHERE %s)', this.deparse(node.agg_filter)));
+        output.push(format('FILTER (WHERE %s)', this.deparse(node.agg_filter)));
       }
       if (node.over != null) {
-        output.push((0, _util.format)('OVER %s', this.deparse(node.over)));
+        output.push(format('OVER %s', this.deparse(node.over)));
       }
       return output.join(' ');
     }
@@ -680,7 +673,7 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
         var funcCall = node.functions[i];
         var call = [this.deparse(funcCall[0])];
         if (funcCall[1] && funcCall[1].length) {
-          call.push((0, _util.format)('AS (%s)', this.list(funcCall[1])));
+          call.push(format('AS (%s)', this.list(funcCall[1])));
         }
         funcs.push(call.join(' '));
       }
@@ -775,7 +768,7 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
       if (node.row_format === 2) {
         return parens(this.list(node.args));
       }
-      return (0, _util.format)('ROW(%s)', this.list(node.args));
+      return format('ROW(%s)', this.list(node.args));
     }
   }, {
     key: 'SelectStmt',
@@ -915,24 +908,24 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
     value: function SubLink(node) {
       switch (true) {
         case node.subLinkType === 0:
-          return (0, _util.format)('EXISTS (%s)', this.deparse(node.subselect));
+          return format('EXISTS (%s)', this.deparse(node.subselect));
         case node.subLinkType === 1:
-          return (0, _util.format)('%s %s ALL (%s)', this.deparse(node.testexpr), this.deparse(node.operName[0]), this.deparse(node.subselect));
+          return format('%s %s ALL (%s)', this.deparse(node.testexpr), this.deparse(node.operName[0]), this.deparse(node.subselect));
         case node.subLinkType === 2 && !(node.operName != null):
-          return (0, _util.format)('%s IN (%s)', this.deparse(node.testexpr), this.deparse(node.subselect));
+          return format('%s IN (%s)', this.deparse(node.testexpr), this.deparse(node.subselect));
         case node.subLinkType === 2:
-          return (0, _util.format)('%s %s ANY (%s)', this.deparse(node.testexpr), this.deparse(node.operName[0]), this.deparse(node.subselect));
+          return format('%s %s ANY (%s)', this.deparse(node.testexpr), this.deparse(node.operName[0]), this.deparse(node.subselect));
         case node.subLinkType === 3:
-          return (0, _util.format)('%s %s (%s)', this.deparse(node.testexpr), this.deparse(node.operName[0]), this.deparse(node.subselect));
+          return format('%s %s (%s)', this.deparse(node.testexpr), this.deparse(node.operName[0]), this.deparse(node.subselect));
         case node.subLinkType === 4:
-          return (0, _util.format)('(%s)', this.deparse(node.subselect));
+          return format('(%s)', this.deparse(node.subselect));
         case node.subLinkType === 5:
           // TODO(zhm) what is this?
           return fail('SubLink', node);
         // MULTIEXPR_SUBLINK
         // format('(%s)', @deparse(node.subselect))
         case node.subLinkType === 6:
-          return (0, _util.format)('ARRAY (%s)', this.deparse(node.subselect));
+          return format('ARRAY (%s)', this.deparse(node.subselect));
         default:
           return fail('SubLink', node);
       }
@@ -946,7 +939,7 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
     key: 'TypeName',
     value: function TypeName(node) {
       var _this8 = this;
-      if (_lodash["default"].last(node.names).String.str === 'interval') {
+      if (_.last(node.names).String.str === 'interval') {
         return this.deparseInterval(node);
       }
       var output = [];
@@ -980,24 +973,24 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
     key: 'VariableSetStmt',
     value: function VariableSetStmt(node) {
       if (node.kind === 4) {
-        return (0, _util.format)('RESET %s', node.name);
+        return format('RESET %s', node.name);
       }
       if (node.kind === 3) {
         var name = {
           'TRANSACTION': 'TRANSACTION',
           'SESSION CHARACTERISTICS': 'SESSION CHARACTERISTICS AS TRANSACTION'
         }[node.name];
-        return (0, _util.format)('SET %s %s', name, this.deparseNodes(node.args, 'simple').join(', '));
+        return format('SET %s %s', name, this.deparseNodes(node.args, 'simple').join(', '));
       }
       if (node.kind === 1) {
-        return (0, _util.format)('SET %s TO DEFAULT', node.name);
+        return format('SET %s TO DEFAULT', node.name);
       }
-      return (0, _util.format)('SET %s%s = %s', node.is_local ? 'LOCAL ' : '', node.name, this.deparseNodes(node.args, 'simple').join(', '));
+      return format('SET %s%s = %s', node.is_local ? 'LOCAL ' : '', node.name, this.deparseNodes(node.args, 'simple').join(', '));
     }
   }, {
     key: 'VariableShowStmt',
     value: function VariableShowStmt(node) {
-      return (0, _util.format)('SHOW %s', node.name);
+      return format('SHOW %s', node.name);
     }
   }, {
     key: 'WindowDef',
@@ -1142,7 +1135,7 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
         } else {
           intervals = intervals.map(function (part) {
             if (part === 'second' && typmods.length === 2) {
-              return 'second(' + _lodash["default"].last(typmods) + ')';
+              return 'second(' + _.last(typmods) + ')';
             }
             return part;
           });
@@ -1189,7 +1182,7 @@ var Deparser = exports["default"] = /*#__PURE__*/function () {
         };
       }
       if (this.BITS == null) {
-        this.BITS = _lodash["default"].invert(this.MASKS);
+        this.BITS = _.invert(this.MASKS);
       }
       if (this.INTERVALS == null) {
         this.INTERVALS = {};

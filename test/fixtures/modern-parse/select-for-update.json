@@ -1,0 +1,44 @@
+{
+  "sql": "SELECT * FROM t FOR UPDATE",
+  "stmt": {
+    "SelectStmt": {
+      "targetList": [
+        {
+          "ResTarget": {
+            "val": {
+              "ColumnRef": {
+                "fields": [
+                  {
+                    "A_Star": {}
+                  }
+                ],
+                "location": 7
+              }
+            },
+            "location": 7
+          }
+        }
+      ],
+      "fromClause": [
+        {
+          "RangeVar": {
+            "relname": "t",
+            "inh": true,
+            "relpersistence": "p",
+            "location": 14
+          }
+        }
+      ],
+      "limitOption": "LIMIT_OPTION_DEFAULT",
+      "lockingClause": [
+        {
+          "LockingClause": {
+            "strength": "LCS_FORUPDATE",
+            "waitPolicy": "LockWaitBlock"
+          }
+        }
+      ],
+      "op": "SETOP_NONE"
+    }
+  }
+}

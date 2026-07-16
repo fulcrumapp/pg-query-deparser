@@ -1,0 +1,77 @@
+{
+  "sql": "SELECT GREATEST(1, 2), LEAST(3, 4)",
+  "stmt": {
+    "SelectStmt": {
+      "targetList": [
+        {
+          "ResTarget": {
+            "val": {
+              "MinMaxExpr": {
+                "op": "IS_GREATEST",
+                "args": [
+                  {
+                    "A_Const": {
+                      "val": {
+                        "Integer": {
+                          "ival": 1
+                        }
+                      },
+                      "location": 16
+                    }
+                  },
+                  {
+                    "A_Const": {
+                      "val": {
+                        "Integer": {
+                          "ival": 2
+                        }
+                      },
+                      "location": 19
+                    }
+                  }
+                ],
+                "location": 7
+              }
+            },
+            "location": 7
+          }
+        },
+        {
+          "ResTarget": {
+            "val": {
+              "MinMaxExpr": {
+                "op": "IS_LEAST",
+                "args": [
+                  {
+                    "A_Const": {
+                      "val": {
+                        "Integer": {
+                          "ival": 3
+                        }
+                      },
+                      "location": 29
+                    }
+                  },
+                  {
+                    "A_Const": {
+                      "val": {
+                        "Integer": {
+                          "ival": 4
+                        }
+                      },
+                      "location": 32
+                    }
+                  }
+                ],
+                "location": 23
+              }
+            },
+            "location": 23
+          }
+        }
+      ],
+      "limitOption": "LIMIT_OPTION_DEFAULT",
+      "op": "SETOP_NONE"
+    }
+  }
+}

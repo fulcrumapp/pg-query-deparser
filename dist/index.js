@@ -1,4 +1,3 @@
-function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 function _readOnlyError(r) { throw new TypeError('"' + r + '" is read-only'); }
 function _slicedToArray(r, e) { return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest(); }
 function _nonIterableRest() { throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method."); }
@@ -11,6 +10,7 @@ function _defineProperties(e, r) { for (var t = 0; t < r.length; t++) { var o = 
 function _createClass(e, r, t) { return r && _defineProperties(e.prototype, r), t && _defineProperties(e, t), Object.defineProperty(e, "prototype", { writable: !1 }), e; }
 function _toPropertyKey(t) { var i = _toPrimitive(t, "string"); return "symbol" == _typeof(i) ? i : i + ""; }
 function _toPrimitive(t, r) { if ("object" != _typeof(t) || !t) return t; var e = t[Symbol.toPrimitive]; if (void 0 !== e) { var i = e.call(t, r || "default"); if ("object" != _typeof(i)) return i; throw new TypeError("@@toPrimitive must return a primitive value."); } return ("string" === r ? String : Number)(t); }
+function _typeof(o) { "@babel/helpers - typeof"; return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (o) { return typeof o; } : function (o) { return o && "function" == typeof Symbol && o.constructor === Symbol && o !== Symbol.prototype ? "symbol" : typeof o; }, _typeof(o); }
 import _ from 'lodash';
 import { format } from 'util';
 var keys = _.keys;
@@ -31,6 +31,101 @@ var parens = function parens(string) {
 var indent = function indent(text) {
   var count = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1;
   return text;
+};
+
+// Modern libpg_query / pg-query-parser emit string enums and bare alias objects.
+// Older AST producers still use numeric enums and `{ Alias: { aliasname } }`.
+// Accept both so callers (e.g. data-exports) can drop compatibility shims.
+var SET_OPERATION = {
+  SETOP_NONE: 0,
+  SETOP_UNION: 1,
+  SETOP_INTERSECT: 2,
+  SETOP_EXCEPT: 3
+};
+var SORT_DIRECTION = {
+  SORTBY_DEFAULT: 0,
+  SORTBY_ASC: 1,
+  SORTBY_DESC: 2,
+  SORTBY_USING: 3
+};
+var SORT_NULLS = {
+  SORTBY_NULLS_DEFAULT: 0,
+  SORTBY_NULLS_FIRST: 1,
+  SORTBY_NULLS_LAST: 2
+};
+var NULL_TEST_TYPE = {
+  IS_NULL: 0,
+  IS_NOT_NULL: 1
+};
+var MIN_MAX_OP = {
+  IS_GREATEST: 0,
+  IS_LEAST: 1
+};
+var SUB_LINK_TYPE = {
+  EXISTS_SUBLINK: 0,
+  ALL_SUBLINK: 1,
+  ANY_SUBLINK: 2,
+  ROWCOMPARE_SUBLINK: 3,
+  EXPR_SUBLINK: 4,
+  MULTIEXPR_SUBLINK: 5,
+  ARRAY_SUBLINK: 6
+};
+var LOCK_STRENGTH_SQL = {
+  0: 'NONE',
+  1: 'FOR KEY SHARE',
+  2: 'FOR SHARE',
+  3: 'FOR NO KEY UPDATE',
+  4: 'FOR UPDATE',
+  LCS_NONE: 'NONE',
+  LCS_FORKEYSHARE: 'FOR KEY SHARE',
+  LCS_FORSHARE: 'FOR SHARE',
+  LCS_FORNOKEYUPDATE: 'FOR NO KEY UPDATE',
+  LCS_FORUPDATE: 'FOR UPDATE'
+};
+var SET_OPERATION_SQL = ['NONE', 'UNION', 'INTERSECT', 'EXCEPT'];
+var normalizeEnum = function normalizeEnum(value, map) {
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'string' && Object.hasOwn(map, value)) {
+    return map[value];
+  }
+  return value;
+};
+var isBareAlias = function isBareAlias(item) {
+  if (item == null || _typeof(item) !== 'object' || Array.isArray(item)) {
+    return false;
+  }
+  if (item.Alias != null) {
+    return false;
+  }
+  if (item.aliasname == null) {
+    return false;
+  }
+  return keys(item).every(function (key) {
+    return key === 'aliasname' || key === 'colnames';
+  });
+};
+
+// Modern set-op trees nest left/right selects as bare SelectStmt fields
+// (`{ targetList, fromClause, op, ... }`) instead of `{ SelectStmt: { ... } }`.
+var isBareSelectStmt = function isBareSelectStmt(item) {
+  if (item == null || _typeof(item) !== 'object' || Array.isArray(item)) {
+    return false;
+  }
+  if (item.SelectStmt != null) {
+    return false;
+  }
+  if (isBareAlias(item)) {
+    return false;
+  }
+
+  // Typed nodes are single-key wrappers like `{ RangeVar: {...} }`.
+  var itemKeys = keys(item);
+  if (itemKeys.length === 1 && /^[A-Z]/.test(itemKeys[0])) {
+    return false;
+  }
+  return Object.hasOwn(item, 'targetList') || Object.hasOwn(item, 'valuesLists') || Object.hasOwn(item, 'larg') || Object.hasOwn(item, 'rarg') || Object.hasOwn(item, 'op') && (Object.hasOwn(item, 'fromClause') || Object.hasOwn(item, 'whereClause') || Object.hasOwn(item, 'limitOption'));
 };
 export var Deparser = /*#__PURE__*/function () {
   function Deparser(tree) {
@@ -167,6 +262,16 @@ export var Deparser = /*#__PURE__*/function () {
       }
       if (_.isNumber(item)) {
         return item;
+      }
+
+      // Modern parsers emit `alias: { aliasname }` instead of `alias: { Alias: { aliasname } }`.
+      if (isBareAlias(item)) {
+        return this.Alias(item, context);
+      }
+
+      // Modern set-ops emit bare SelectStmt bodies for larg/rarg.
+      if (isBareSelectStmt(item)) {
+        return this.SelectStmt(item, context);
       }
       var type = keys(item)[0];
       var node = _.values(item)[0];
@@ -605,11 +710,12 @@ export var Deparser = /*#__PURE__*/function () {
   }, {
     key: 'LockingClause',
     value: function LockingClause(node) {
-      var strengths = ['NONE',
-      // LCS_NONE
-      'FOR KEY SHARE', 'FOR SHARE', 'FOR NO KEY UPDATE', 'FOR UPDATE'];
       var output = [];
-      output.push(strengths[node.strength]);
+      var strengthSql = LOCK_STRENGTH_SQL[node.strength];
+      if (strengthSql == null) {
+        return fail('LockingClause', node);
+      }
+      output.push(strengthSql);
       if (node.lockedRels) {
         output.push('OF');
         output.push(this.list(node.lockedRels));
@@ -620,7 +726,8 @@ export var Deparser = /*#__PURE__*/function () {
     key: 'MinMaxExpr',
     value: function MinMaxExpr(node) {
       var output = [];
-      if (node.op === 0) {
+      var op = normalizeEnum(node.op, MIN_MAX_OP);
+      if (op === 0) {
         output.push('GREATEST');
       } else {
         output.push('LEAST');
@@ -646,9 +753,10 @@ export var Deparser = /*#__PURE__*/function () {
     key: 'NullTest',
     value: function NullTest(node) {
       var output = [this.deparse(node.arg)];
-      if (node.nulltesttype === 0) {
+      var nullTestType = normalizeEnum(node.nulltesttype, NULL_TEST_TYPE);
+      if (nullTestType === 0) {
         output.push('IS NULL');
-      } else if (node.nulltesttype === 1) {
+      } else if (nullTestType === 1) {
         output.push('IS NOT NULL');
       }
       return output.join(' ');
@@ -775,18 +883,18 @@ export var Deparser = /*#__PURE__*/function () {
     value: function SelectStmt(node, context) {
       var _this7 = this;
       var output = [];
+      var setOp = normalizeEnum(node.op, SET_OPERATION);
       if (node.withClause) {
         output.push(this.deparse(node.withClause));
       }
-      if (node.op === 0) {
+      if (setOp === 0) {
         // VALUES select's don't get SELECT
         if (node.valuesLists == null) {
           output.push('SELECT');
         }
       } else {
         output.push(parens(this.deparse(node.larg)));
-        var sets = ['NONE', 'UNION', 'INTERSECT', 'EXCEPT'];
-        output.push(sets[node.op]);
+        output.push(SET_OPERATION_SQL[setOp]);
         if (node.all) {
           output.push('ALL');
         }
@@ -880,20 +988,22 @@ export var Deparser = /*#__PURE__*/function () {
     key: 'SortBy',
     value: function SortBy(node) {
       var output = [];
+      var sortDir = normalizeEnum(node.sortby_dir, SORT_DIRECTION);
+      var sortNulls = normalizeEnum(node.sortby_nulls, SORT_NULLS);
       output.push(this.deparse(node.node));
-      if (node.sortby_dir === 1) {
+      if (sortDir === 1) {
         output.push('ASC');
       }
-      if (node.sortby_dir === 2) {
+      if (sortDir === 2) {
         output.push('DESC');
       }
-      if (node.sortby_dir === 3) {
+      if (sortDir === 3) {
         output.push("USING ".concat(this.deparseNodes(node.useOp)));
       }
-      if (node.sortby_nulls === 1) {
+      if (sortNulls === 1) {
         output.push('NULLS FIRST');
       }
-      if (node.sortby_nulls === 2) {
+      if (sortNulls === 2) {
         output.push('NULLS LAST');
       }
       return output.join(' ');
@@ -906,25 +1016,26 @@ export var Deparser = /*#__PURE__*/function () {
   }, {
     key: 'SubLink',
     value: function SubLink(node) {
+      var subLinkType = normalizeEnum(node.subLinkType, SUB_LINK_TYPE);
       switch (true) {
-        case node.subLinkType === 0:
+        case subLinkType === 0:
           return format('EXISTS (%s)', this.deparse(node.subselect));
-        case node.subLinkType === 1:
+        case subLinkType === 1:
           return format('%s %s ALL (%s)', this.deparse(node.testexpr), this.deparse(node.operName[0]), this.deparse(node.subselect));
-        case node.subLinkType === 2 && !(node.operName != null):
+        case subLinkType === 2 && !(node.operName != null):
           return format('%s IN (%s)', this.deparse(node.testexpr), this.deparse(node.subselect));
-        case node.subLinkType === 2:
+        case subLinkType === 2:
           return format('%s %s ANY (%s)', this.deparse(node.testexpr), this.deparse(node.operName[0]), this.deparse(node.subselect));
-        case node.subLinkType === 3:
+        case subLinkType === 3:
           return format('%s %s (%s)', this.deparse(node.testexpr), this.deparse(node.operName[0]), this.deparse(node.subselect));
-        case node.subLinkType === 4:
+        case subLinkType === 4:
           return format('(%s)', this.deparse(node.subselect));
-        case node.subLinkType === 5:
+        case subLinkType === 5:
           // TODO(zhm) what is this?
           return fail('SubLink', node);
         // MULTIEXPR_SUBLINK
         // format('(%s)', @deparse(node.subselect))
-        case node.subLinkType === 6:
+        case subLinkType === 6:
           return format('ARRAY (%s)', this.deparse(node.subselect));
         default:
           return fail('SubLink', node);
@@ -1118,14 +1229,14 @@ export var Deparser = /*#__PURE__*/function () {
   }, {
     key: "deparseInterval",
     value: function deparseInterval(node) {
-      var _this10 = this;
+      var _this0 = this;
       var type = ['interval'];
       if (node.arrayBounds != null) {
         type.push('[]');
       }
       if (node.typmods) {
         var typmods = node.typmods.map(function (item) {
-          return _this10.deparse(item);
+          return _this0.deparse(item);
         });
         var intervals = this.interval(typmods[0]);
 

@@ -23,6 +23,134 @@ const parens = (string) => {
 
 const indent = (text, count = 1) => text;
 
+// Modern libpg_query / pg-query-parser emit string enums and bare alias objects.
+// Older AST producers still use numeric enums and `{ Alias: { aliasname } }`.
+// Accept both so callers (e.g. data-exports) can drop compatibility shims.
+const SET_OPERATION = {
+  SETOP_NONE: 0,
+  SETOP_UNION: 1,
+  SETOP_INTERSECT: 2,
+  SETOP_EXCEPT: 3,
+};
+
+const SORT_DIRECTION = {
+  SORTBY_DEFAULT: 0,
+  SORTBY_ASC: 1,
+  SORTBY_DESC: 2,
+  SORTBY_USING: 3,
+};
+
+const SORT_NULLS = {
+  SORTBY_NULLS_DEFAULT: 0,
+  SORTBY_NULLS_FIRST: 1,
+  SORTBY_NULLS_LAST: 2,
+};
+
+const NULL_TEST_TYPE = {
+  IS_NULL: 0,
+  IS_NOT_NULL: 1,
+};
+
+const MIN_MAX_OP = {
+  IS_GREATEST: 0,
+  IS_LEAST: 1,
+};
+
+const SUB_LINK_TYPE = {
+  EXISTS_SUBLINK: 0,
+  ALL_SUBLINK: 1,
+  ANY_SUBLINK: 2,
+  ROWCOMPARE_SUBLINK: 3,
+  EXPR_SUBLINK: 4,
+  MULTIEXPR_SUBLINK: 5,
+  ARRAY_SUBLINK: 6,
+};
+
+const LOCK_STRENGTH_SQL = {
+  0: 'NONE',
+  1: 'FOR KEY SHARE',
+  2: 'FOR SHARE',
+  3: 'FOR NO KEY UPDATE',
+  4: 'FOR UPDATE',
+  LCS_NONE: 'NONE',
+  LCS_FORKEYSHARE: 'FOR KEY SHARE',
+  LCS_FORSHARE: 'FOR SHARE',
+  LCS_FORNOKEYUPDATE: 'FOR NO KEY UPDATE',
+  LCS_FORUPDATE: 'FOR UPDATE',
+};
+
+const SET_OPERATION_SQL = [
+  'NONE',
+  'UNION',
+  'INTERSECT',
+  'EXCEPT',
+];
+
+const normalizeEnum = (value, map) => {
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'string' && Object.hasOwn(map, value)) {
+    return map[value];
+  }
+
+  return value;
+};
+
+const isBareAlias = (item) => {
+  if (item == null || typeof item !== 'object' || Array.isArray(item)) {
+    return false;
+  }
+
+  if (item.Alias != null) {
+    return false;
+  }
+
+  if (item.aliasname == null) {
+    return false;
+  }
+
+  return keys(item).every((key) => key === 'aliasname' || key === 'colnames');
+};
+
+// Modern set-op trees nest left/right selects as bare SelectStmt fields
+// (`{ targetList, fromClause, op, ... }`) instead of `{ SelectStmt: { ... } }`.
+const isBareSelectStmt = (item) => {
+  if (item == null || typeof item !== 'object' || Array.isArray(item)) {
+    return false;
+  }
+
+  if (item.SelectStmt != null) {
+    return false;
+  }
+
+  if (isBareAlias(item)) {
+    return false;
+  }
+
+  // Typed nodes are single-key wrappers like `{ RangeVar: {...} }`.
+  const itemKeys = keys(item);
+  if (itemKeys.length === 1 && /^[A-Z]/.test(itemKeys[0])) {
+    return false;
+  }
+
+  return (
+    Object.hasOwn(item, 'targetList')
+    || Object.hasOwn(item, 'valuesLists')
+    || Object.hasOwn(item, 'larg')
+    || Object.hasOwn(item, 'rarg')
+    || (
+      Object.hasOwn(item, 'op')
+      && (
+        Object.hasOwn(item, 'fromClause')
+        || Object.hasOwn(item, 'whereClause')
+        || Object.hasOwn(item, 'limitOption')
+      )
+    )
+  );
+};
+
 export class Deparser {
   static deparse(query) {
     return new Deparser(query).deparseQuery();
@@ -144,6 +272,16 @@ export class Deparser {
 
     if (_.isNumber(item)) {
       return item;
+    }
+
+    // Modern parsers emit `alias: { aliasname }` instead of `alias: { Alias: { aliasname } }`.
+    if (isBareAlias(item)) {
+      return this.Alias(item, context);
+    }
+
+    // Modern set-ops emit bare SelectStmt bodies for larg/rarg.
+    if (isBareSelectStmt(item)) {
+      return this.SelectStmt(item, context);
     }
 
     const type = keys(item)[0];
@@ -649,17 +787,14 @@ export class Deparser {
   }
 
   ['LockingClause'](node) {
-    const strengths = [
-      'NONE', // LCS_NONE
-      'FOR KEY SHARE',
-      'FOR SHARE',
-      'FOR NO KEY UPDATE',
-      'FOR UPDATE'
-    ];
-
     const output = [];
 
-    output.push(strengths[node.strength]);
+    const strengthSql = LOCK_STRENGTH_SQL[node.strength];
+    if (strengthSql == null) {
+      return fail('LockingClause', node);
+    }
+
+    output.push(strengthSql);
 
     if (node.lockedRels) {
       output.push('OF');
@@ -671,8 +806,9 @@ export class Deparser {
 
   ['MinMaxExpr'](node) {
     const output = [];
+    const op = normalizeEnum(node.op, MIN_MAX_OP);
 
-    if (node.op === 0) {
+    if (op === 0) {
       output.push('GREATEST');
     } else {
       output.push('LEAST');
@@ -699,10 +835,11 @@ export class Deparser {
 
   ['NullTest'](node) {
     const output = [ this.deparse(node.arg) ];
+    const nullTestType = normalizeEnum(node.nulltesttype, NULL_TEST_TYPE);
 
-    if (node.nulltesttype === 0) {
+    if (nullTestType === 0) {
       output.push('IS NULL');
-    } else if (node.nulltesttype === 1) {
+    } else if (nullTestType === 1) {
       output.push('IS NOT NULL');
     }
 
@@ -850,12 +987,13 @@ export class Deparser {
 
   ['SelectStmt'](node, context) {
     const output = [];
+    const setOp = normalizeEnum(node.op, SET_OPERATION);
 
     if (node.withClause) {
       output.push(this.deparse(node.withClause));
     }
 
-    if (node.op === 0) {
+    if (setOp === 0) {
       // VALUES select's don't get SELECT
       if (node.valuesLists == null) {
         output.push('SELECT');
@@ -863,14 +1001,7 @@ export class Deparser {
     } else {
       output.push(parens(this.deparse(node.larg)));
 
-      const sets = [
-        'NONE',
-        'UNION',
-        'INTERSECT',
-        'EXCEPT'
-      ];
-
-      output.push(sets[node.op]);
+      output.push(SET_OPERATION_SQL[setOp]);
 
       if (node.all) {
         output.push('ALL');
@@ -977,26 +1108,28 @@ export class Deparser {
 
   ['SortBy'](node) {
     const output = [];
+    const sortDir = normalizeEnum(node.sortby_dir, SORT_DIRECTION);
+    const sortNulls = normalizeEnum(node.sortby_nulls, SORT_NULLS);
 
     output.push(this.deparse(node.node));
 
-    if (node.sortby_dir === 1) {
+    if (sortDir === 1) {
       output.push('ASC');
     }
 
-    if (node.sortby_dir === 2) {
+    if (sortDir === 2) {
       output.push('DESC');
     }
 
-    if (node.sortby_dir === 3) {
+    if (sortDir === 3) {
       output.push(`USING ${this.deparseNodes(node.useOp)}`);
     }
 
-    if (node.sortby_nulls === 1) {
+    if (sortNulls === 1) {
       output.push('NULLS FIRST');
     }
 
-    if (node.sortby_nulls === 2) {
+    if (sortNulls === 2) {
       output.push('NULLS LAST');
     }
 
@@ -1008,25 +1141,27 @@ export class Deparser {
   }
 
   ['SubLink'](node) {
+    const subLinkType = normalizeEnum(node.subLinkType, SUB_LINK_TYPE);
+
     switch (true) {
-      case node.subLinkType === 0:
+      case subLinkType === 0:
         return format('EXISTS (%s)', this.deparse(node.subselect));
-      case node.subLinkType === 1:
+      case subLinkType === 1:
         return format('%s %s ALL (%s)', this.deparse(node.testexpr), this.deparse(node.operName[0]), this.deparse(node.subselect));
-      case node.subLinkType === 2 && !(node.operName != null):
+      case subLinkType === 2 && !(node.operName != null):
         return format('%s IN (%s)', this.deparse(node.testexpr), this.deparse(node.subselect));
-      case node.subLinkType === 2:
+      case subLinkType === 2:
         return format('%s %s ANY (%s)', this.deparse(node.testexpr), this.deparse(node.operName[0]), this.deparse(node.subselect));
-      case node.subLinkType === 3:
+      case subLinkType === 3:
         return format('%s %s (%s)', this.deparse(node.testexpr), this.deparse(node.operName[0]), this.deparse(node.subselect));
-      case node.subLinkType === 4:
+      case subLinkType === 4:
         return format('(%s)', this.deparse(node.subselect));
-      case node.subLinkType === 5:
+      case subLinkType === 5:
         // TODO(zhm) what is this?
         return fail('SubLink', node);
         // MULTIEXPR_SUBLINK
         // format('(%s)', @deparse(node.subselect))
-      case node.subLinkType === 6:
+      case subLinkType === 6:
         return format('ARRAY (%s)', this.deparse(node.subselect));
       default:
         return fail('SubLink', node);

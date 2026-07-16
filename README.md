@@ -1,5 +1,23 @@
 ## pg-query-deparser
 
+Format PostgreSQL queries from AST nodes.
+
+### Modern AST compatibility
+
+`Deparser.deparse` accepts both legacy and modern libpg_query shapes:
+
+- string **or** numeric enums for set ops, sort direction/nulls, null tests, min/max ops, sublinks, and lock strength
+- bare aliases (`{ aliasname }`) **or** wrapped aliases (`{ Alias: { aliasname } }`)
+- bare set-op arms (`larg`/`rarg` as SelectStmt fields) **or** wrapped `{ SelectStmt: ... }` arms
+
+Fixtures under `test/fixtures/modern-parse/` were captured from modern `pg-query-parser` `parse()` output.
+
+### Test
+
+```bash
+yarn test
+```
+
 ### Publishing
 Reach out to your local engineering manager for this step.
 

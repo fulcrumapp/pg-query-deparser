@@ -1,0 +1,70 @@
+{
+  "sql": "SELECT * FROM (SELECT a FROM t) AS sub",
+  "stmt": {
+    "SelectStmt": {
+      "targetList": [
+        {
+          "ResTarget": {
+            "val": {
+              "ColumnRef": {
+                "fields": [
+                  {
+                    "A_Star": {}
+                  }
+                ],
+                "location": 7
+              }
+            },
+            "location": 7
+          }
+        }
+      ],
+      "fromClause": [
+        {
+          "RangeSubselect": {
+            "subquery": {
+              "SelectStmt": {
+                "targetList": [
+                  {
+                    "ResTarget": {
+                      "val": {
+                        "ColumnRef": {
+                          "fields": [
+                            {
+                              "String": {
+                                "str": "a"
+                              }
+                            }
+                          ],
+                          "location": 22
+                        }
+                      },
+                      "location": 22
+                    }
+                  }
+                ],
+                "fromClause": [
+                  {
+                    "RangeVar": {
+                      "relname": "t",
+                      "inh": true,
+                      "relpersistence": "p",
+                      "location": 29
+                    }
+                  }
+                ],
+                "limitOption": "LIMIT_OPTION_DEFAULT",
+                "op": "SETOP_NONE"
+              }
+            },
+            "alias": {
+              "aliasname": "sub"
+            }
+          }
+        }
+      ],
+      "limitOption": "LIMIT_OPTION_DEFAULT",
+      "op": "SETOP_NONE"
+    }
+  }
+}

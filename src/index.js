@@ -77,6 +77,12 @@ const LOCK_STRENGTH_SQL = {
   LCS_FORUPDATE: 'FOR UPDATE',
 };
 
+const LOCK_WAIT_POLICY = {
+  LockWaitBlock: 0,
+  LockWaitSkip: 1,
+  LockWaitError: 2,
+};
+
 const SET_OPERATION_SQL = [
   'NONE',
   'UNION',
@@ -815,12 +821,20 @@ export class Deparser {
   ['LockingClause'](node) {
     const output = [];
 
-    const strengthSql = LOCK_STRENGTH_SQL[node.strength];
-    if (strengthSql == null) {
+    if (!Object.hasOwn(LOCK_STRENGTH_SQL, node.strength)) {
       return fail('LockingClause', node);
     }
 
+    const strengthSql = LOCK_STRENGTH_SQL[node.strength];
+
     output.push(strengthSql);
+
+    const waitPolicy = node.waitPolicy == null ? 0 : normalizeEnum(node.waitPolicy, LOCK_WAIT_POLICY);
+    if (waitPolicy === 1) {
+      output.push('SKIP LOCKED');
+    } else if (waitPolicy === 2) {
+      output.push('NOWAIT');
+    }
 
     if (node.lockedRels) {
       output.push('OF');

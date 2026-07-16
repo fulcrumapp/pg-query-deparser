@@ -80,6 +80,11 @@ var LOCK_STRENGTH_SQL = {
   LCS_FORNOKEYUPDATE: 'FOR NO KEY UPDATE',
   LCS_FORUPDATE: 'FOR UPDATE'
 };
+var LOCK_WAIT_POLICY = {
+  LockWaitBlock: 0,
+  LockWaitSkip: 1,
+  LockWaitError: 2
+};
 var SET_OPERATION_SQL = ['NONE', 'UNION', 'INTERSECT', 'EXCEPT'];
 var enumNumericValuesCache = new WeakMap();
 var getEnumNumericValues = function getEnumNumericValues(map) {
@@ -733,11 +738,17 @@ export var Deparser = /*#__PURE__*/function () {
     key: 'LockingClause',
     value: function LockingClause(node) {
       var output = [];
-      var strengthSql = LOCK_STRENGTH_SQL[node.strength];
-      if (strengthSql == null) {
+      if (!Object.hasOwn(LOCK_STRENGTH_SQL, node.strength)) {
         return fail('LockingClause', node);
       }
+      var strengthSql = LOCK_STRENGTH_SQL[node.strength];
       output.push(strengthSql);
+      var waitPolicy = node.waitPolicy == null ? 0 : normalizeEnum(node.waitPolicy, LOCK_WAIT_POLICY);
+      if (waitPolicy === 1) {
+        output.push('SKIP LOCKED');
+      } else if (waitPolicy === 2) {
+        output.push('NOWAIT');
+      }
       if (node.lockedRels) {
         output.push('OF');
         output.push(this.list(node.lockedRels));

@@ -16,6 +16,40 @@ const deparseStmt = (stmt) => Deparser.deparse([stmt]);
 
 const normalizeSql = (sql) => sql.replace(/\s+/g, ' ').trim();
 
+const deparseLockingClause = ({ strength, waitPolicy, op = 0 }) => {
+  return normalizeSql(Deparser.deparse([
+    {
+      SelectStmt: {
+        targetList: [
+          {
+            ResTarget: {
+              val: {
+                A_Star: {},
+              },
+            },
+          },
+        ],
+        fromClause: [
+          {
+            RangeVar: {
+              relname: 't',
+            },
+          },
+        ],
+        lockingClause: [
+          {
+            LockingClause: {
+              strength,
+              waitPolicy,
+            },
+          },
+        ],
+        op,
+      },
+    },
+  ]));
+};
+
 describe('modern parse AST compatibility', () => {
   it('deparses simple select from modern parse fixture', () => {
     const { stmt } = loadFixture('select-simple');
@@ -262,74 +296,46 @@ describe('modern parse AST compatibility', () => {
     assert.strictEqual(sql, 'SELECT * FROM "t" FOR UPDATE');
   });
 
-  it('rejects LockingClause with numeric NONE strength', () => {
-    assert.throws(() => {
-      Deparser.deparse([
-        {
-          SelectStmt: {
-            targetList: [
-              {
-                ResTarget: {
-                  val: {
-                    A_Star: {},
-                  },
-                },
-              },
-            ],
-            fromClause: [
-              {
-                RangeVar: {
-                  relname: 't',
-                },
-              },
-            ],
-            lockingClause: [
-              {
-                LockingClause: {
-                  strength: 0,
-                },
-              },
-            ],
-            op: 0,
-          },
-        },
-      ]);
-    }, /Unhandled LockingClause node/);
+  [
+    {
+      name: 'deparses SKIP LOCKED with string waitPolicy',
+      input: { strength: 'LCS_FORUPDATE', waitPolicy: 'LockWaitSkip', op: 'SETOP_NONE' },
+      expected: 'SELECT * FROM "t" FOR UPDATE SKIP LOCKED',
+    },
+    {
+      name: 'deparses NOWAIT with numeric waitPolicy',
+      input: { strength: 4, waitPolicy: 2, op: 0 },
+      expected: 'SELECT * FROM "t" FOR UPDATE NOWAIT',
+    },
+  ].forEach(({ name, input, expected }) => {
+    it(name, () => {
+      assert.strictEqual(deparseLockingClause(input), expected);
+    });
   });
 
-  it('rejects LockingClause with string NONE strength', () => {
-    assert.throws(() => {
-      Deparser.deparse([
-        {
-          SelectStmt: {
-            targetList: [
-              {
-                ResTarget: {
-                  val: {
-                    A_Star: {},
-                  },
-                },
-              },
-            ],
-            fromClause: [
-              {
-                RangeVar: {
-                  relname: 't',
-                },
-              },
-            ],
-            lockingClause: [
-              {
-                LockingClause: {
-                  strength: 'LCS_NONE',
-                },
-              },
-            ],
-            op: 0,
-          },
-        },
-      ]);
-    }, /Unhandled LockingClause node/);
+  [
+    {
+      name: 'rejects LockingClause with numeric NONE strength',
+      strength: 0,
+    },
+    {
+      name: 'rejects LockingClause with string NONE strength',
+      strength: 'LCS_NONE',
+    },
+    {
+      name: 'rejects LockingClause with inherited toString strength',
+      strength: 'toString',
+    },
+    {
+      name: 'rejects LockingClause with inherited constructor strength',
+      strength: 'constructor',
+    },
+  ].forEach(({ name, strength }) => {
+    it(name, () => {
+      assert.throws(() => {
+        deparseLockingClause({ strength });
+      }, /Unhandled LockingClause node/);
+    });
   });
 
   it('deparses EXISTS with string subLinkType', () => {

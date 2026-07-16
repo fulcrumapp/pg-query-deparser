@@ -132,6 +132,32 @@ describe('modern parse AST compatibility', () => {
     }, /Unhandled enum value/);
   });
 
+  it('rejects MinMaxExpr when op is missing', () => {
+    assert.throws(() => {
+      Deparser.deparse([
+        {
+          SelectStmt: {
+            targetList: [
+              {
+                ResTarget: {
+                  val: {
+                    MinMaxExpr: {
+                      args: [
+                        { A_Const: { val: { Integer: { ival: 1 } } } },
+                        { A_Const: { val: { Integer: { ival: 2 } } } },
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+            op: 0,
+          },
+        },
+      ]);
+    }, /Unhandled MinMaxExpr node/);
+  });
+
   it('rejects unknown NullTest enum values', () => {
     assert.throws(() => {
       Deparser.deparse([
@@ -234,6 +260,76 @@ describe('modern parse AST compatibility', () => {
     const { stmt } = loadFixture('select-for-update');
     const sql = normalizeSql(deparseStmt(stmt));
     assert.strictEqual(sql, 'SELECT * FROM "t" FOR UPDATE');
+  });
+
+  it('rejects LockingClause with numeric NONE strength', () => {
+    assert.throws(() => {
+      Deparser.deparse([
+        {
+          SelectStmt: {
+            targetList: [
+              {
+                ResTarget: {
+                  val: {
+                    A_Star: {},
+                  },
+                },
+              },
+            ],
+            fromClause: [
+              {
+                RangeVar: {
+                  relname: 't',
+                },
+              },
+            ],
+            lockingClause: [
+              {
+                LockingClause: {
+                  strength: 0,
+                },
+              },
+            ],
+            op: 0,
+          },
+        },
+      ]);
+    }, /Unhandled LockingClause node/);
+  });
+
+  it('rejects LockingClause with string NONE strength', () => {
+    assert.throws(() => {
+      Deparser.deparse([
+        {
+          SelectStmt: {
+            targetList: [
+              {
+                ResTarget: {
+                  val: {
+                    A_Star: {},
+                  },
+                },
+              },
+            ],
+            fromClause: [
+              {
+                RangeVar: {
+                  relname: 't',
+                },
+              },
+            ],
+            lockingClause: [
+              {
+                LockingClause: {
+                  strength: 'LCS_NONE',
+                },
+              },
+            ],
+            op: 0,
+          },
+        },
+      ]);
+    }, /Unhandled LockingClause node/);
   });
 
   it('deparses EXISTS with string subLinkType', () => {
@@ -398,5 +494,11 @@ describe('modern parse AST compatibility', () => {
     assert.throws(() => {
       Deparser.deparse([{ NotARealNode: { targetList: [] } }]);
     }, /NotARealNode is not implemented/);
+  });
+
+  it('does not treat targetList-only plain objects as bare SelectStmt bodies', () => {
+    assert.throws(() => {
+      Deparser.deparse([{ targetList: [] }]);
+    }, /targetList is not implemented/);
   });
 });

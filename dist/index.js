@@ -71,24 +71,33 @@ var SUB_LINK_TYPE = {
   ARRAY_SUBLINK: 6
 };
 var LOCK_STRENGTH_SQL = {
-  0: 'NONE',
   1: 'FOR KEY SHARE',
   2: 'FOR SHARE',
   3: 'FOR NO KEY UPDATE',
   4: 'FOR UPDATE',
-  LCS_NONE: 'NONE',
   LCS_FORKEYSHARE: 'FOR KEY SHARE',
   LCS_FORSHARE: 'FOR SHARE',
   LCS_FORNOKEYUPDATE: 'FOR NO KEY UPDATE',
   LCS_FORUPDATE: 'FOR UPDATE'
 };
 var SET_OPERATION_SQL = ['NONE', 'UNION', 'INTERSECT', 'EXCEPT'];
+var enumNumericValuesCache = new WeakMap();
+var getEnumNumericValues = function getEnumNumericValues(map) {
+  var values = enumNumericValuesCache.get(map);
+  if (values == null) {
+    values = new Set(Object.values(map).filter(function (entry) {
+      return typeof entry === 'number';
+    }));
+    enumNumericValuesCache.set(map, values);
+  }
+  return values;
+};
 var normalizeEnum = function normalizeEnum(value, map) {
   if (value == null) {
     return undefined;
   }
   if (typeof value === 'number') {
-    if (Object.values(map).includes(value)) {
+    if (getEnumNumericValues(map).has(value)) {
       return value;
     }
     throw new Error(format('Unhandled enum value: %s', value));
@@ -123,6 +132,13 @@ var isBareSelectStmt = function isBareSelectStmt(item) {
     return false;
   }
   if (isBareAlias(item)) {
+    return false;
+  }
+
+  // Modern/legacy SelectStmt bodies include an explicit set-op enum.
+  // Requiring this avoids misclassifying arbitrary objects that just
+  // happen to contain fields like `targetList`.
+  if (!Object.hasOwn(item, 'op')) {
     return false;
   }
 
@@ -732,11 +748,16 @@ export var Deparser = /*#__PURE__*/function () {
     key: 'MinMaxExpr',
     value: function MinMaxExpr(node) {
       var output = [];
+      if (node.op == null) {
+        return fail('MinMaxExpr', node);
+      }
       var op = normalizeEnum(node.op, MIN_MAX_OP);
-      if (op == null || op === 0) {
+      if (op === 0) {
         output.push('GREATEST');
-      } else {
+      } else if (op === 1) {
         output.push('LEAST');
+      } else {
+        return fail('MinMaxExpr', node);
       }
       output.push(parens(this.list(node.args)));
       return output.join('');

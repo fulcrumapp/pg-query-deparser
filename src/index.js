@@ -67,12 +67,10 @@ const SUB_LINK_TYPE = {
 };
 
 const LOCK_STRENGTH_SQL = {
-  0: 'NONE',
   1: 'FOR KEY SHARE',
   2: 'FOR SHARE',
   3: 'FOR NO KEY UPDATE',
   4: 'FOR UPDATE',
-  LCS_NONE: 'NONE',
   LCS_FORKEYSHARE: 'FOR KEY SHARE',
   LCS_FORSHARE: 'FOR SHARE',
   LCS_FORNOKEYUPDATE: 'FOR NO KEY UPDATE',
@@ -86,13 +84,26 @@ const SET_OPERATION_SQL = [
   'EXCEPT',
 ];
 
+const enumNumericValuesCache = new WeakMap();
+
+const getEnumNumericValues = (map) => {
+  let values = enumNumericValuesCache.get(map);
+
+  if (values == null) {
+    values = new Set(Object.values(map).filter((entry) => typeof entry === 'number'));
+    enumNumericValuesCache.set(map, values);
+  }
+
+  return values;
+};
+
 const normalizeEnum = (value, map) => {
   if (value == null) {
     return undefined;
   }
 
   if (typeof value === 'number') {
-    if (Object.values(map).includes(value)) {
+    if (getEnumNumericValues(map).has(value)) {
       return value;
     }
 
@@ -134,6 +145,13 @@ const isBareSelectStmt = (item) => {
   }
 
   if (isBareAlias(item)) {
+    return false;
+  }
+
+  // Modern/legacy SelectStmt bodies include an explicit set-op enum.
+  // Requiring this avoids misclassifying arbitrary objects that just
+  // happen to contain fields like `targetList`.
+  if (!Object.hasOwn(item, 'op')) {
     return false;
   }
 
@@ -814,12 +832,19 @@ export class Deparser {
 
   ['MinMaxExpr'](node) {
     const output = [];
+
+    if (node.op == null) {
+      return fail('MinMaxExpr', node);
+    }
+
     const op = normalizeEnum(node.op, MIN_MAX_OP);
 
-    if (op == null || op === 0) {
+    if (op === 0) {
       output.push('GREATEST');
-    } else {
+    } else if (op === 1) {
       output.push('LEAST');
+    } else {
+      return fail('MinMaxExpr', node);
     }
 
     output.push(parens(this.list(node.args)));

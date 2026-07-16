@@ -69,6 +69,18 @@ describe('modern parse AST compatibility', () => {
     assert.strictEqual(sql, '(SELECT "a" FROM "t") INTERSECT (SELECT "b" FROM "u")');
   });
 
+  it('deparses EXCEPT with string set-op enum', () => {
+    const { stmt } = loadFixture('select-except');
+    const sql = normalizeSql(deparseStmt(stmt));
+    assert.strictEqual(sql, '(SELECT "a" FROM "t") EXCEPT (SELECT "b" FROM "u")');
+  });
+
+  it('deparses EXCEPT ALL with string set-op enum', () => {
+    const { stmt } = loadFixture('select-except-all');
+    const sql = normalizeSql(deparseStmt(stmt));
+    assert.strictEqual(sql, '(SELECT "a" FROM "t") EXCEPT ALL (SELECT "b" FROM "u")');
+  });
+
   it('deparses bare subselect aliases from modern parse fixture', () => {
     const { stmt } = loadFixture('select-subselect-alias');
     const sql = normalizeSql(deparseStmt(stmt));
@@ -91,6 +103,131 @@ describe('modern parse AST compatibility', () => {
     const { stmt } = loadFixture('select-greatest-least');
     const sql = normalizeSql(deparseStmt(stmt));
     assert.strictEqual(sql, 'SELECT GREATEST(1, 2), LEAST(3, 4)');
+  });
+
+  it('rejects unknown MinMaxExpr enum values', () => {
+    assert.throws(() => {
+      Deparser.deparse([
+        {
+          SelectStmt: {
+            targetList: [
+              {
+                ResTarget: {
+                  val: {
+                    MinMaxExpr: {
+                      op: 'IS_NOT_A_REAL_ENUM',
+                      args: [
+                        { A_Const: { val: { Integer: { ival: 1 } } } },
+                        { A_Const: { val: { Integer: { ival: 2 } } } },
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+            op: 0,
+          },
+        },
+      ]);
+    }, /Unhandled enum value/);
+  });
+
+  it('rejects unknown NullTest enum values', () => {
+    assert.throws(() => {
+      Deparser.deparse([
+        {
+          SelectStmt: {
+            targetList: [
+              {
+                ResTarget: {
+                  val: {
+                    ColumnRef: {
+                      fields: [{ String: { str: 'a' } }],
+                    },
+                  },
+                },
+              },
+            ],
+            whereClause: {
+              NullTest: {
+                arg: {
+                  ColumnRef: {
+                    fields: [{ String: { str: 'a' } }],
+                  },
+                },
+                nulltesttype: 'NOPE',
+              },
+            },
+            fromClause: [
+              {
+                RangeVar: {
+                  relname: 't',
+                },
+              },
+            ],
+            op: 0,
+          },
+        },
+      ]);
+    }, /Unhandled enum value/);
+  });
+
+  it('rejects unknown set operation enum values', () => {
+    assert.throws(() => {
+      Deparser.deparse([
+        {
+          SelectStmt: {
+            op: 'NOT_A_SET_OP',
+            larg: {
+              SelectStmt: {
+                targetList: [
+                  {
+                    ResTarget: {
+                      val: {
+                        ColumnRef: {
+                          fields: [{ String: { str: 'a' } }],
+                        },
+                      },
+                    },
+                  },
+                ],
+                fromClause: [
+                  {
+                    RangeVar: {
+                      relname: 't',
+                    },
+                  },
+                ],
+                op: 0,
+              },
+            },
+            rarg: {
+              SelectStmt: {
+                targetList: [
+                  {
+                    ResTarget: {
+                      val: {
+                        ColumnRef: {
+                          fields: [{ String: { str: 'b' } }],
+                        },
+                      },
+                    },
+                  },
+                ],
+                fromClause: [
+                  {
+                    RangeVar: {
+                      relname: 'u',
+                    },
+                  },
+                ],
+                op: 0,
+              },
+            },
+          },
+        },
+      ]);
+    }, /Unhandled enum value/);
   });
 
   it('deparses FOR UPDATE with string lock strength', () => {

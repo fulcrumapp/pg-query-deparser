@@ -84,13 +84,19 @@ var LOCK_STRENGTH_SQL = {
 };
 var SET_OPERATION_SQL = ['NONE', 'UNION', 'INTERSECT', 'EXCEPT'];
 var normalizeEnum = function normalizeEnum(value, map) {
+  if (value == null) {
+    return undefined;
+  }
   if (typeof value === 'number') {
-    return value;
+    if (Object.values(map).includes(value)) {
+      return value;
+    }
+    throw new Error(format('Unhandled enum value: %s', value));
   }
   if (typeof value === 'string' && Object.hasOwn(map, value)) {
     return map[value];
   }
-  return value;
+  throw new Error(format('Unhandled enum value: %s', value));
 };
 var isBareAlias = function isBareAlias(item) {
   if (item == null || _typeof(item) !== 'object' || Array.isArray(item)) {
@@ -727,7 +733,7 @@ export var Deparser = /*#__PURE__*/function () {
     value: function MinMaxExpr(node) {
       var output = [];
       var op = normalizeEnum(node.op, MIN_MAX_OP);
-      if (op === 0) {
+      if (op == null || op === 0) {
         output.push('GREATEST');
       } else {
         output.push('LEAST');
@@ -758,6 +764,8 @@ export var Deparser = /*#__PURE__*/function () {
         output.push('IS NULL');
       } else if (nullTestType === 1) {
         output.push('IS NOT NULL');
+      } else {
+        return fail('NullTest', node);
       }
       return output.join(' ');
     }
@@ -883,7 +891,7 @@ export var Deparser = /*#__PURE__*/function () {
     value: function SelectStmt(node, context) {
       var _this7 = this;
       var output = [];
-      var setOp = normalizeEnum(node.op, SET_OPERATION);
+      var setOp = node.op == null ? 0 : normalizeEnum(node.op, SET_OPERATION);
       if (node.withClause) {
         output.push(this.deparse(node.withClause));
       }
@@ -988,8 +996,8 @@ export var Deparser = /*#__PURE__*/function () {
     key: 'SortBy',
     value: function SortBy(node) {
       var output = [];
-      var sortDir = normalizeEnum(node.sortby_dir, SORT_DIRECTION);
-      var sortNulls = normalizeEnum(node.sortby_nulls, SORT_NULLS);
+      var sortDir = node.sortby_dir == null ? 0 : normalizeEnum(node.sortby_dir, SORT_DIRECTION);
+      var sortNulls = node.sortby_nulls == null ? 0 : normalizeEnum(node.sortby_nulls, SORT_NULLS);
       output.push(this.deparse(node.node));
       if (sortDir === 1) {
         output.push('ASC');

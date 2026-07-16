@@ -87,15 +87,23 @@ const SET_OPERATION_SQL = [
 ];
 
 const normalizeEnum = (value, map) => {
+  if (value == null) {
+    return undefined;
+  }
+
   if (typeof value === 'number') {
-    return value;
+    if (Object.values(map).includes(value)) {
+      return value;
+    }
+
+    throw new Error(format('Unhandled enum value: %s', value));
   }
 
   if (typeof value === 'string' && Object.hasOwn(map, value)) {
     return map[value];
   }
 
-  return value;
+  throw new Error(format('Unhandled enum value: %s', value));
 };
 
 const isBareAlias = (item) => {
@@ -808,7 +816,7 @@ export class Deparser {
     const output = [];
     const op = normalizeEnum(node.op, MIN_MAX_OP);
 
-    if (op === 0) {
+    if (op == null || op === 0) {
       output.push('GREATEST');
     } else {
       output.push('LEAST');
@@ -841,6 +849,8 @@ export class Deparser {
       output.push('IS NULL');
     } else if (nullTestType === 1) {
       output.push('IS NOT NULL');
+    } else {
+      return fail('NullTest', node);
     }
 
     return output.join(' ');
@@ -987,7 +997,7 @@ export class Deparser {
 
   ['SelectStmt'](node, context) {
     const output = [];
-    const setOp = normalizeEnum(node.op, SET_OPERATION);
+    const setOp = node.op == null ? 0 : normalizeEnum(node.op, SET_OPERATION);
 
     if (node.withClause) {
       output.push(this.deparse(node.withClause));
@@ -1108,8 +1118,8 @@ export class Deparser {
 
   ['SortBy'](node) {
     const output = [];
-    const sortDir = normalizeEnum(node.sortby_dir, SORT_DIRECTION);
-    const sortNulls = normalizeEnum(node.sortby_nulls, SORT_NULLS);
+    const sortDir = node.sortby_dir == null ? 0 : normalizeEnum(node.sortby_dir, SORT_DIRECTION);
+    const sortNulls = node.sortby_nulls == null ? 0 : normalizeEnum(node.sortby_nulls, SORT_NULLS);
 
     output.push(this.deparse(node.node));
 

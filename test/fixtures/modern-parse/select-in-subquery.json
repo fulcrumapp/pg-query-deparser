@@ -1,0 +1,91 @@
+{
+  "sql": "SELECT a FROM t WHERE a IN (SELECT b FROM u)",
+  "stmt": {
+    "SelectStmt": {
+      "targetList": [
+        {
+          "ResTarget": {
+            "val": {
+              "ColumnRef": {
+                "fields": [
+                  {
+                    "String": {
+                      "str": "a"
+                    }
+                  }
+                ],
+                "location": 7
+              }
+            },
+            "location": 7
+          }
+        }
+      ],
+      "fromClause": [
+        {
+          "RangeVar": {
+            "relname": "t",
+            "inh": true,
+            "relpersistence": "p",
+            "location": 14
+          }
+        }
+      ],
+      "whereClause": {
+        "SubLink": {
+          "subLinkType": "ANY_SUBLINK",
+          "testexpr": {
+            "ColumnRef": {
+              "fields": [
+                {
+                  "String": {
+                    "str": "a"
+                  }
+                }
+              ],
+              "location": 22
+            }
+          },
+          "subselect": {
+            "SelectStmt": {
+              "targetList": [
+                {
+                  "ResTarget": {
+                    "val": {
+                      "ColumnRef": {
+                        "fields": [
+                          {
+                            "String": {
+                              "str": "b"
+                            }
+                          }
+                        ],
+                        "location": 35
+                      }
+                    },
+                    "location": 35
+                  }
+                }
+              ],
+              "fromClause": [
+                {
+                  "RangeVar": {
+                    "relname": "u",
+                    "inh": true,
+                    "relpersistence": "p",
+                    "location": 42
+                  }
+                }
+              ],
+              "limitOption": "LIMIT_OPTION_DEFAULT",
+              "op": "SETOP_NONE"
+            }
+          },
+          "location": 24
+        }
+      },
+      "limitOption": "LIMIT_OPTION_DEFAULT",
+      "op": "SETOP_NONE"
+    }
+  }
+}

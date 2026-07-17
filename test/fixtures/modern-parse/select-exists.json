@@ -1,0 +1,77 @@
+{
+  "sql": "SELECT a FROM t WHERE EXISTS (SELECT 1 FROM u)",
+  "stmt": {
+    "SelectStmt": {
+      "targetList": [
+        {
+          "ResTarget": {
+            "val": {
+              "ColumnRef": {
+                "fields": [
+                  {
+                    "String": {
+                      "str": "a"
+                    }
+                  }
+                ],
+                "location": 7
+              }
+            },
+            "location": 7
+          }
+        }
+      ],
+      "fromClause": [
+        {
+          "RangeVar": {
+            "relname": "t",
+            "inh": true,
+            "relpersistence": "p",
+            "location": 14
+          }
+        }
+      ],
+      "whereClause": {
+        "SubLink": {
+          "subLinkType": "EXISTS_SUBLINK",
+          "subselect": {
+            "SelectStmt": {
+              "targetList": [
+                {
+                  "ResTarget": {
+                    "val": {
+                      "A_Const": {
+                        "val": {
+                          "Integer": {
+                            "ival": 1
+                          }
+                        },
+                        "location": 37
+                      }
+                    },
+                    "location": 37
+                  }
+                }
+              ],
+              "fromClause": [
+                {
+                  "RangeVar": {
+                    "relname": "u",
+                    "inh": true,
+                    "relpersistence": "p",
+                    "location": 44
+                  }
+                }
+              ],
+              "limitOption": "LIMIT_OPTION_DEFAULT",
+              "op": "SETOP_NONE"
+            }
+          },
+          "location": 22
+        }
+      },
+      "limitOption": "LIMIT_OPTION_DEFAULT",
+      "op": "SETOP_NONE"
+    }
+  }
+}

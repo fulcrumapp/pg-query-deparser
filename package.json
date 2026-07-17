@@ -17,6 +17,7 @@
     "build": "node_modules/.bin/babel src --out-dir dist --source-maps",
     "watch": "node_modules/.bin/babel src --out-dir dist --source-maps --watch",
     "clean": "rm -rf dist",
+    "test": "node_modules/.bin/mocha --recursive test/**/*.test.js",
     "check-deps": "node_modules/.bin/ncu",
     "update-deps": "node_modules/.bin/ncu -u"
   },

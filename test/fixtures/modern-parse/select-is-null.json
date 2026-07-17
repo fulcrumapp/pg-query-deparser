@@ -1,0 +1,56 @@
+{
+  "sql": "SELECT a FROM t WHERE a IS NULL",
+  "stmt": {
+    "SelectStmt": {
+      "targetList": [
+        {
+          "ResTarget": {
+            "val": {
+              "ColumnRef": {
+                "fields": [
+                  {
+                    "String": {
+                      "str": "a"
+                    }
+                  }
+                ],
+                "location": 7
+              }
+            },
+            "location": 7
+          }
+        }
+      ],
+      "fromClause": [
+        {
+          "RangeVar": {
+            "relname": "t",
+            "inh": true,
+            "relpersistence": "p",
+            "location": 14
+          }
+        }
+      ],
+      "whereClause": {
+        "NullTest": {
+          "arg": {
+            "ColumnRef": {
+              "fields": [
+                {
+                  "String": {
+                    "str": "a"
+                  }
+                }
+              ],
+              "location": 22
+            }
+          },
+          "nulltesttype": "IS_NULL",
+          "location": 24
+        }
+      },
+      "limitOption": "LIMIT_OPTION_DEFAULT",
+      "op": "SETOP_NONE"
+    }
+  }
+}

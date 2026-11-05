@@ -18,16 +18,23 @@ Fixtures under `test/fixtures/modern-parse/` were captured from modern `pg-query
 yarn test
 ```
 
-### Publishing
-Reach out to your local engineering manager for this step.
+### CI and releases
 
-- `yarn clean && yarn build`
-- Bump package.json version
-- Merge to `main`
-- Checkout `main`, `git pull`
-- `git tag -a vx.x.x -m "x.x.x"` (use actual tag number of next release)
-- `git push origin --tags`
-- Create a release for the tag in github
-- Move .npmrc off to fulcrum.npmrc and `npm login` (Credentials in 1password)
-- `npm publish`
-- Move fulcrum.npmrc back to .npmrc to reset back to your own configurations
+Pull requests to `main`, merge queue entries, and changes to `main` run tests
+and a clean distribution build on GitHub-hosted runners. The existing lint
+command also runs, but is non-blocking until its ESLint configuration is fixed.
+
+After main validation succeeds, a GitHub App commits the next version to
+`package.json` and creates a matching stable SemVer tag. Do not edit the root
+package version manually. Tag creation starts a separate workflow that rebuilds
+and publishes the package to GitHub Packages and creates GitHub release notes;
+this repository does not publish to npmjs.org.
+
+Before enabling releases, ensure public-fork workflow approval remains enabled,
+and verify the required CI checks, GitHub Packages access, public App secrets, and
+the release App's branch and tag protection bypasses. Disable any old publisher
+at cutover. The existing `v1.0.1` tag contains package version `1.0.0`; the version
+calculator uses stable tag history rather than modifying that tag. If publishing
+fails, rerun the publish workflow for the same tag; it checks the tag, release
+commit, and package version before publishing. Changes to the workflow after a
+tag was created do not change that tag's workflow code.

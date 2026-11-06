@@ -2,6 +2,14 @@
 
 Format PostgreSQL queries from AST nodes.
 
+### Licensing and attribution
+
+The package is licensed under BSD-3-Clause; see `LICENSE`. The original
+upstream manifest also declared BSD-3-Clause and identifies Zac McCormick as
+the author. `THIRD_PARTY_NOTICES.md` documents the upstream attribution and
+license metadata. The BSD-3-Clause grant covers the package, including
+Fulcrum-owned changes.
+
 ### Modern AST compatibility
 
 `Deparser.deparse` accepts both legacy and modern libpg_query shapes:

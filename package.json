@@ -7,7 +7,7 @@
   "main": "dist/index.js",
   "exports": "./dist/index.js",
   "author": "",
-  "license": "ISC",
+  "license": "BSD-3-Clause",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
